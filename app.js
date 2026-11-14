@@ -136,6 +136,7 @@ function showRoomDetail(room) {
   });
 
   // REGRA ESPECIAL: Filtrar NPCs na Porta/Entrada pelas noites corretas
+  // O Admin vê todos para poder testar, mas os jogadores só veem os da noite
   if (room.name === 'Porta/Entrada' && currentRole !== 'admin') {
     npcsHere = npcsHere.filter(npc => {
       return npc.nights_active && npc.nights_active.includes(currentGameDay);
