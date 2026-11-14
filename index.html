@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entre Nós</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section id="auth-section">
+    <h1>Entre Nós</h1>
+    <p style="text-align:center; font-size:12px; color:#888; margin-bottom:20px;">A casa está esperando.</p>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Senha">
+    <button id="btn-login">Entrar</button>
+    <div id="auth-error" style="color:#8b2d2d; margin-top:10px; font-size:12px; text-align:center;"></div>
+  </section>
+
+  <section id="game-section">
+    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; max-width:1000px; margin: 0 auto;">
+      <h2 id="game-state-display" style="color:#8b2d2d; font-variant:small-caps;">Dia 1 - Fase: DAY</h2>
+      <div>
+        <span id="user-email-display" style="font-size:12px; margin-right:10px; color:#666;"></span>
+        <button class="btn-logout" id="btn-logout">Sair</button>
+      </div>
+    </div>
+
+    <div id="map-container">
+      <img id="map-image" src="mapa.jpg" alt="Mapa da Casa">
+    </div>
+
+    <div id="room-detail">
+      <p style="color:#666; text-align:center;">Clique em um cômodo para ver quem está lá.</p>
+    </div>
+  </section>
+
+  <section id="admin-section">
+    <h3 style="color:#8b2d2d; margin-bottom:15px; border-bottom: 1px solid #333; padding-bottom:10px;">⚙️ Painel do Administrador</h3>
+    
+    <div class="admin-controls" style="background:#0a0a0a; padding:15px; border:1px solid #333;">
+      <button id="btn-advance-day" style="background:#8b2d2d; font-weight:bold;">🌙 Avançar Dia/Noite</button>
+      <span id="admin-feedback" style="color:#4ecca3; align-self:center; font-size:14px; margin-left:10px;"></span>
+    </div>
+
+    <div class="admin-controls" style="margin-top:20px;">
+      <label>Mover NPC:
+        <select id="npc-select"></select>
+      </label>
+      <label>para:
+        <select id="room-select"></select>
+      </label>
+      <button id="btn-move-npc">Mover</button>
+    </div>
+
+    <div class="admin-controls" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
+      <label style="display:flex; flex-direction:column; gap:5px;">
+        <span>Adicionar NPC:</span>
+        <div style="display:flex; gap:10px;">
+          <input type="text" id="new-npc-name" placeholder="Nome" style="width:150px;">
+          <input type="text" id="new-npc-desc" placeholder="Descrição" style="width:250px;">
+          <select id="new-npc-race">
+            <option value="Aleatório">Aleatório</option>
+            <option value="Humano">Humano</option>
+            <option value="Visitante">Visitante</option>
+          </select>
+          <input type="number" id="new-npc-nights" placeholder="Noites (ex: 1,2)" style="width:120px;">
+        </div>
+      </label>
+      <button id="btn-add-npc" style="align-self:flex-end;">Adicionar</button>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
