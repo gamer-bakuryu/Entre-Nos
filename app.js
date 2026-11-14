@@ -1,16 +1,21 @@
-// TROQUE PELOS SEUS DADOS DO SUPABASE
+// ==========================================
+// CONFIGURAÇÃO DO SUPABASE
+// ==========================================
 const SUPABASE_URL = 'https://nkpqjecybrlzfhwdudyt.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_MAYqX-_lOj-YS-xGH-Kf1w_ay0LrscN';
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ==========================================
+// ELEMENTOS DO DOM
+// ==========================================
 const authSection = document.getElementById('auth-section');
 const gameSection = document.getElementById('game-section');
 const adminSection = document.getElementById('admin-section');
 const mapContainer = document.getElementById('map-container');
-const roomDetail = document.getElementById('room-detail');
 const adminFeedback = document.getElementById('admin-feedback');
 const gameStateDisplay = document.getElementById('game-state-display');
+const sidebar = document.getElementById('sidebar');
 
 let currentUser = null;
 let currentRole = 'player';
@@ -18,22 +23,42 @@ let allRooms = [];
 let allNpcs = [];
 let allLocations = [];
 
+// ==========================================
+// LOGIN E LOGOUT
+// ==========================================
 document.getElementById('btn-login').addEventListener('click', async () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  const { error } = await db.auth.signInWithPassword({ email, password });
-  if (error) document.getElementById('auth-error').textContent = error.message;
+  const emailInput = document.getElementById('email').value.trim(); // .trim() remove espaços acidentais
+  const passwordInput = document.getElementById('password').value;
+  const errorDiv = document.getElementById('auth-error');
+  
+  errorDiv.textContent = 'Entrando...';
+  errorDiv.style.color = '#4ecca3';
+
+  const { data, error } = await db.auth.signInWithPassword({ 
+    email: emailInput, 
+    password: passwordInput 
+  });
+
+  if (error) {
+    errorDiv.textContent = 'Erro: ' + error.message;
+    errorDiv.style.color = '#8b2d2d';
+  }
 });
 
 document.getElementById('btn-logout').addEventListener('click', async () => {
-  await db.auth.signOut(); location.reload();
+  await db.auth.signOut(); 
+  location.reload();
 });
 
+// ==========================================
+// MONITOR DE AUTENTICAÇÃO
+// ==========================================
 db.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
     currentUser = session.user;
     document.getElementById('user-email-display').textContent = currentUser.email;
     
+    // Busca se o usuário é admin ou player
     const { data: profile } = await db.from('profiles').select('role').eq('id', currentUser.id).single();
     currentRole = profile?.role || 'player';
 
@@ -54,16 +79,23 @@ db.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
+// ==========================================
+// CARREGAR DADOS DO JOGO
+// ==========================================
 async function loadGameData() {
+  // Pega o dia e a fase
   const { data: state } = await db.from('game_state').select('*').eq('id', 1).single();
   if (state) gameStateDisplay.textContent = `Dia ${state.day_number} - Fase: ${state.phase.toUpperCase()}`;
 
+  // Pega cômodos
   const { data: rooms } = await db.from('rooms').select('*').order('room_order');
   allRooms = rooms || [];
 
+  // Pega NPCs
   const { data: npcs } = await db.from('npcs').select('*');
   allNpcs = npcs || [];
   
+  // Pega localizações
   const { data: locations } = await db.from('npc_locations').select('*');
   allLocations = locations || [];
 
@@ -71,6 +103,9 @@ async function loadGameData() {
   renderAdminSelects();
 }
 
+// ==========================================
+// RENDERIZAR MAPA
+// ==========================================
 function renderMap() {
   mapContainer.querySelectorAll('.room-hit').forEach(el => el.remove());
 
@@ -83,16 +118,17 @@ function renderMap() {
     div.style.top = room.y_percent + '%';
     div.style.width = room.w_percent + '%';
     div.style.height = room.h_percent + '%';
-    // Agora o innerHTML tem apenas a label, que será centralizada pelo CSS
     div.innerHTML = `<span class="room-label">${room.name}</span>`;
     div.onclick = () => showRoomDetail(room);
     mapContainer.appendChild(div);
   });
 }
 
-// Botão de fechar a barra lateral
+// ==========================================
+// BARRA LATERAL (SIDEBAR) E NPCs
+// ==========================================
 document.getElementById('btn-close-sidebar').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.remove('active');
+  sidebar.classList.remove('active');
 });
 
 function showRoomDetail(room) {
@@ -101,7 +137,6 @@ function showRoomDetail(room) {
     return loc && loc.room_id === room.id;
   });
 
-  const sidebar = document.getElementById('sidebar');
   const sidebarTitle = document.getElementById('sidebar-title');
   const sidebarContent = document.getElementById('sidebar-content');
 
@@ -112,6 +147,7 @@ function showRoomDetail(room) {
   } else {
     let html = '';
     npcsHere.forEach(npc => {
+      // Jogadores não veem NPCs mortos
       if (!npc.is_alive && currentRole !== 'admin') return;
 
       const isDead = !npc.is_alive ? 'npc-dead' : '';
@@ -125,10 +161,13 @@ function showRoomDetail(room) {
     sidebarContent.innerHTML = html;
   }
 
-  // Abre a barra lateral adicionando a classe .active
+  // Abre a barra lateral
   sidebar.classList.add('active');
 }
 
+// ==========================================
+// FUNÇÕES DE ADMINISTRADOR
+// ==========================================
 function renderAdminSelects() {
   if (currentRole !== 'admin') return;
   
@@ -139,6 +178,7 @@ function renderAdminSelects() {
   roomSelect.innerHTML = allRooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
 }
 
+// Mover NPC
 document.getElementById('btn-move-npc').addEventListener('click', async () => {
   const npcId = document.getElementById('npc-select').value;
   const roomId = document.getElementById('room-select').value;
@@ -155,6 +195,7 @@ document.getElementById('btn-move-npc').addEventListener('click', async () => {
   }
 });
 
+// Avançar Dia/Noite
 document.getElementById('btn-advance-day').addEventListener('click', async () => {
   const { data, error } = await db.rpc('advance_day');
   
@@ -168,6 +209,7 @@ document.getElementById('btn-advance-day').addEventListener('click', async () =>
   }
 });
 
+// Adicionar NPC
 document.getElementById('btn-add-npc').addEventListener('click', async () => {
   const name = document.getElementById('new-npc-name').value;
   const desc = document.getElementById('new-npc-desc').value;
