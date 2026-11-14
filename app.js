@@ -1,6 +1,6 @@
 // TROQUE PELOS SEUS DADOS DO SUPABASE
-const SUPABASE_URL = https://nkpqjecybrlzfhwdudyt.supabase.co;
-const SUPABASE_KEY = sb_publishable_MAYqX-_lOj-YS-xGH-Kf1w_ay0LrscN;
+const SUPABASE_URL = 'https://nkpqjecybrlzfhwdudyt.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_MAYqX-_lOj-YS-xGH-Kf1w_ay0LrscN';
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
