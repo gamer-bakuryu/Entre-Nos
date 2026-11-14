@@ -135,8 +135,6 @@ function showRoomDetail(room) {
     return loc && loc.room_id === room.id;
   });
 
-  // REGRA ESPECIAL: Filtrar NPCs na Porta/Entrada pelas noites corretas
-  // O Admin vê todos para poder testar, mas os jogadores só veem os da noite
   if (room.name === 'Porta/Entrada' && currentRole !== 'admin') {
     npcsHere = npcsHere.filter(npc => {
       return npc.nights_active && npc.nights_active.includes(currentGameDay);
@@ -158,9 +156,13 @@ function showRoomDetail(room) {
       const isDead = !npc.is_alive ? 'npc-dead' : '';
       const raceInfo = currentRole === 'admin' ? ` <span style="font-size:11px; background:#5c3a21; padding:2px 6px; border-radius:2px; float:right;">${npc.race}</span>` : ''; 
       
-      // Botão Mover - Só aparece se for admin, estiver na porta e estiver vivo
+      // Pega a localização atual do NPC para verificar se é exclusivo da porta
+      const loc = allLocations.find(l => l.npc_id === npc.id);
+      const isExclusiveDoor = loc ? loc.is_exclusive_door : false;
+
+      // Botão Mover - Só aparece se for admin, na porta, vivo E NÃO FOR EXCLUSIVO DA PORTA
       let moveBtnHtml = '';
-      if (currentRole === 'admin' && npc.is_alive && room.name === 'Porta/Entrada') {
+      if (currentRole === 'admin' && npc.is_alive && room.name === 'Porta/Entrada' && !isExclusiveDoor) {
         moveBtnHtml = `<button class="btn-mover-npc" onclick="autoMoveNPC('${npc.id}')">Mover</button>`;
       }
 
@@ -180,13 +182,12 @@ function showRoomDetail(room) {
 }
 
 // ==========================================
-// LÓGICA DE AUTO-MOVER NPC (Usa a função do banco)
+// LÓGICA DE AUTO-MOVER NPC
 // ==========================================
 window.autoMoveNPC = async function(npcId) {
   adminFeedback.textContent = `Movendo...`;
   adminFeedback.style.color = '#d4c5b0';
 
-  // Chama a função do banco de dados, que já sabe qual é o quarto favorito
   const { data, error } = await db.rpc('move_npc_to_favorite', { p_npc_id: npcId });
   
   if (error) {
