@@ -83,6 +83,7 @@ function renderMap() {
     div.style.top = room.y_percent + '%';
     div.style.width = room.w_percent + '%';
     div.style.height = room.h_percent + '%';
+    // Agora o innerHTML tem apenas a label, que será centralizada pelo CSS
     div.innerHTML = `<span class="room-label">${room.name}</span>`;
     div.onclick = () => showRoomDetail(room);
     mapContainer.appendChild(div);
