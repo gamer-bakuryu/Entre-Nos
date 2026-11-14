@@ -1,5 +1,5 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Georgia', serif; }
-body { background: #0a0a0a; color: #d4c5b0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+body { background: #0a0a0a; color: #d4c5b0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-x: hidden; }
 
 #auth-section { width: 100%; max-width: 350px; margin-top: 100px; background: #1a1512; padding: 30px; border: 1px solid #5c3a21; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
 #auth-section h1 { text-align: center; color: #8b2d2d; margin-bottom: 10px; font-variant: small-caps; }
@@ -9,46 +9,80 @@ button { width: 100%; padding: 10px; background: #5c3a21; color: #d4c5b0; border
 button:hover { background: #8b2d2d; }
 .btn-logout { width: auto; padding: 5px 15px; background: #8b2d2d; font-size: 12px; }
 
-#game-section, #admin-section { width: 100%; max-width: 1000px; display: none; margin-top: 20px; }
+#game-section, #admin-section { width: 100%; max-width: 1200px; display: none; margin-top: 20px; }
 #admin-section { background: #1a1512; padding: 20px; border: 1px solid #5c3a21; margin-top: 30px; box-shadow: 0 0 15px rgba(139,45,45,0.2); }
 .admin-controls { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; align-items:center; }
 .admin-controls select, .admin-controls input { margin-bottom: 0; width: auto; }
 
-#map-container { position: relative; width: 100%; margin-top: 20px; border: 2px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.9); background: #000; }
-#map-image { display: block; width: 100%; height: auto; opacity: 0.85; }
-.room-hit { 
-  position: absolute; 
-  border: 2px solid transparent; 
-  cursor: pointer; 
-  transition: 0.2s; 
-  border-radius: 4px; 
+/* Layout do Jogo (Mapa + Sidebar) */
+#game-layout {
   display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.room-hit:hover { 
-  background: rgba(139, 45, 45, 0.4); 
-  border-color: #8b2d2d; 
-  box-shadow: 0 0 15px rgba(139,45,45,0.6) inset; 
-}
-.room-hit.hidden-room { 
-  border: 2px dashed #444; 
-  background: transparent; 
-}
-.room-hit .room-label { 
-  background: rgba(0,0,0,0.85); 
-  color: #d4c5b0; 
-  padding: 4px 8px; 
-  font-size: 14px; 
-  pointer-events: none; 
-  border: 1px solid #333; 
-  border-radius: 4px;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  width: 100%;
+  margin-top: 20px;
+  gap: 20px;
+  position: relative;
+  align-items: flex-start;
 }
 
-#room-detail { background: #1a1512; padding: 20px; margin-top: 20px; border-left: 4px solid #8b2d2d; min-height: 100px; }
+#map-container { 
+  flex: 1; /* Ocupa todo o espaço restante */
+  position: relative; 
+  border: 2px solid #333; 
+  box-shadow: 0 0 30px rgba(0,0,0,0.9); 
+  background: #000; 
+  transition: all 0.3s ease;
+}
+
+#map-image { display: block; width: 100%; height: auto; opacity: 0.85; }
+
+/* Quadrados Clicáveis */
+.room-hit { 
+  position: absolute; border: 2px solid transparent; cursor: pointer; transition: 0.2s; border-radius: 4px; 
+  display: flex; align-items: center; justify-content: center;
+}
+.room-hit:hover { background: rgba(139, 45, 45, 0.4); border-color: #8b2d2d; box-shadow: 0 0 15px rgba(139,45,45,0.6) inset; }
+.room-hit.hidden-room { border: 2px dashed #444; background: transparent; }
+.room-hit .room-label { 
+  background: rgba(0,0,0,0.85); color: #d4c5b0; padding: 4px 8px; font-size: 14px; 
+  pointer-events: none; border: 1px solid #333; border-radius: 4px; text-align: center; text-transform: uppercase; letter-spacing: 1px;
+}
+
+/* Barra Lateral (Sidebar) */
+#sidebar {
+  width: 0; /* Começa com largura 0 */
+  opacity: 0;
+  overflow: hidden;
+  background: #1a1512;
+  border-left: 4px solid #8b2d2d;
+  transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  position: relative;
+  padding: 0; /* Padding inicial zero */
+  border-radius: 4px;
+}
+
+/* Classe que é ativada pelo JS quando clica no cômodo */
+#sidebar.active {
+  width: 350px; /* Largura da barra aberta */
+  opacity: 1;
+  padding: 20px;
+  box-shadow: -10px 0 20px rgba(0,0,0,0.5);
+}
+
+#btn-close-sidebar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: transparent;
+  color: #666;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+#btn-close-sidebar:hover { color: #8b2d2d; background: transparent; }
+
 .npc-card { padding: 15px; margin-bottom: 10px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; }
 .npc-dead { text-decoration: line-through; opacity: 0.5; border-color: #8b2d2d; }
 .hidden { display: none !important; }
