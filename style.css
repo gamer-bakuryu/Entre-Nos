@@ -16,10 +16,37 @@ button:hover { background: #8b2d2d; }
 
 #map-container { position: relative; width: 100%; margin-top: 20px; border: 2px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.9); background: #000; }
 #map-image { display: block; width: 100%; height: auto; opacity: 0.85; }
-.room-hit { position: absolute; border: 2px solid transparent; cursor: pointer; transition: 0.2s; border-radius: 4px; }
-.room-hit:hover { background: rgba(139, 45, 45, 0.4); border-color: #8b2d2d; box-shadow: 0 0 15px rgba(139,45,45,0.6) inset; }
-.room-hit.hidden-room { border: 2px dashed #444; background: transparent; }
-.room-hit .room-label { position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.85); color: #d4c5b0; padding: 2px 8px; font-size: 12px; pointer-events: none; border: 1px solid #333; border-radius: 2px;}
+.room-hit { 
+  position: absolute; 
+  border: 2px solid transparent; 
+  cursor: pointer; 
+  transition: 0.2s; 
+  border-radius: 4px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.room-hit:hover { 
+  background: rgba(139, 45, 45, 0.4); 
+  border-color: #8b2d2d; 
+  box-shadow: 0 0 15px rgba(139,45,45,0.6) inset; 
+}
+.room-hit.hidden-room { 
+  border: 2px dashed #444; 
+  background: transparent; 
+}
+.room-hit .room-label { 
+  background: rgba(0,0,0,0.85); 
+  color: #d4c5b0; 
+  padding: 4px 8px; 
+  font-size: 14px; 
+  pointer-events: none; 
+  border: 1px solid #333; 
+  border-radius: 4px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
 
 #room-detail { background: #1a1512; padding: 20px; margin-top: 20px; border-left: 4px solid #8b2d2d; min-height: 100px; }
 .npc-card { padding: 15px; margin-bottom: 10px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; }
