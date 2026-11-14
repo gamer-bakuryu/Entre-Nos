@@ -138,7 +138,6 @@ function showRoomDetail(room) {
   // REGRA ESPECIAL: Filtrar NPCs na Porta/Entrada pelas noites corretas
   if (room.name === 'Porta/Entrada' && currentRole !== 'admin') {
     npcsHere = npcsHere.filter(npc => {
-      // Se o array de noites existir e incluir o dia atual
       return npc.nights_active && npc.nights_active.includes(currentGameDay);
     });
   }
@@ -158,7 +157,7 @@ function showRoomDetail(room) {
       const isDead = !npc.is_alive ? 'npc-dead' : '';
       const raceInfo = currentRole === 'admin' ? ` <span style="font-size:11px; background:#5c3a21; padding:2px 6px; border-radius:2px; float:right;">${npc.race}</span>` : ''; 
       
-      // REGRA DO BOTÃO MOVER: Só aparece para admin, se não for NPC morto e se estiver na Porta
+      // Botão Mover - Só aparece se for admin, estiver na porta e estiver vivo
       let moveBtnHtml = '';
       if (currentRole === 'admin' && npc.is_alive && room.name === 'Porta/Entrada') {
         moveBtnHtml = `<button class="btn-mover-npc" onclick="autoMoveNPC('${npc.id}')">Mover</button>`;
@@ -180,40 +179,22 @@ function showRoomDetail(room) {
 }
 
 // ==========================================
-// LÓGICA DE AUTO-MOVER NPC (Chamada pelo botão na sidebar)
+// LÓGICA DE AUTO-MOVER NPC (Usa a função do banco)
 // ==========================================
 window.autoMoveNPC = async function(npcId) {
-  // 1. Descobre o NPC e o que tem na descrição
-  const npc = allNpcs.find(n => n.id === npcId);
-  if (!npc || !npc.description) return;
-
-  // 2. Tenta achar o nome do quarto favorito na descrição ("Favorito: NOME.")
-  let targetRoom = null;
-  const match = npc.description.match(/Favorito:\s*(.*?)\./i);
-  
-  if (match && match[1]) {
-    const roomName = match[1].trim(); // Pega o texto depois de "Favorito: " e antes do "."
-    targetRoom = allRooms.find(r => r.name.toLowerCase() === roomName.toLowerCase());
-  }
-
-  // Se não achar na descrição ou o quarto não existir, manda para a Cozinha como fallback
-  if (!targetRoom) {
-    targetRoom = allRooms.find(r => r.name === 'Cozinha'); 
-  }
-
-  // 3. Faz a mágica acontecer no banco
   adminFeedback.textContent = `Movendo...`;
   adminFeedback.style.color = '#d4c5b0';
 
-  const { error } = await db.rpc('move_npc', { p_npc_id: npcId, p_room_id: targetRoom.id });
+  // Chama a função do banco de dados, que já sabe qual é o quarto favorito
+  const { data, error } = await db.rpc('move_npc_to_favorite', { p_npc_id: npcId });
   
   if (error) {
     alert('Erro ao mover: ' + error.message);
   } else {
-    adminFeedback.textContent = `NPC movido para ${targetRoom.name}!`;
+    adminFeedback.textContent = `NPC movido para ${data}!`;
     adminFeedback.style.color = '#4ecca3';
     await loadGameData(); 
-    document.getElementById('sidebar').classList.remove('active'); // Fecha a sidebar
+    document.getElementById('sidebar').classList.remove('active'); 
   }
 };
 
