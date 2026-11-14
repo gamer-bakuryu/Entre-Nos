@@ -32,4 +32,19 @@ button:hover { background: #8b2d2d; }
 
 .npc-card { padding: 15px; margin-bottom: 10px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; }
 .npc-dead { text-decoration: line-through; opacity: 0.5; border-color: #8b2d2d; }
+
+/* NOVO: Botão quadrado de mover ao lado do NPC */
+.btn-mover-npc {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  background: #5c3a21;
+  border-radius: 2px;
+  float: right;
+  margin-left: 10px;
+  margin-top: -2px;
+}
+.btn-mover-npc:hover { background: #8b2d2d; }
+
 .hidden { display: none !important; }
