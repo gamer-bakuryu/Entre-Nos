@@ -90,30 +90,43 @@ function renderMap() {
   });
 }
 
+// Botão de fechar a barra lateral
+document.getElementById('btn-close-sidebar').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.remove('active');
+});
+
 function showRoomDetail(room) {
   const npcsHere = allNpcs.filter(npc => {
     const loc = allLocations.find(l => l.npc_id === npc.id);
     return loc && loc.room_id === room.id;
   });
 
-  let html = `<h3 style="color:#8b2d2d; margin-bottom:15px; font-variant:small-caps;">${room.name}</h3>`;
+  const sidebar = document.getElementById('sidebar');
+  const sidebarTitle = document.getElementById('sidebar-title');
+  const sidebarContent = document.getElementById('sidebar-content');
+
+  sidebarTitle.textContent = room.name;
   
   if (npcsHere.length === 0) {
-    html += `<p style="color:#666; font-style:italic;">Ninguém aqui... por enquanto.</p>`;
+    sidebarContent.innerHTML = `<p style="color:#666; font-style:italic;">Ninguém aqui... por enquanto.</p>`;
   } else {
+    let html = '';
     npcsHere.forEach(npc => {
       if (!npc.is_alive && currentRole !== 'admin') return;
 
       const isDead = !npc.is_alive ? 'npc-dead' : '';
-      const raceInfo = currentRole === 'admin' ? ` <span style="font-size:11px; background:#5c3a21; padding:2px 6px; border-radius:2px; margin-left:10px;">${npc.race}</span>` : ''; 
+      const raceInfo = currentRole === 'admin' ? ` <span style="font-size:11px; background:#5c3a21; padding:2px 6px; border-radius:2px; margin-left:10px; float:right;">${npc.race}</span>` : ''; 
       
       html += `<div class="npc-card ${isDead}">
         <div style="font-size:16px; font-weight:bold; color:#d4c5b0;">${npc.name}${raceInfo}</div>
-        <div style="font-size:13px; color:#888; margin-top:5px;">${npc.description || 'Sem descrição.'}</div>
+        <div style="font-size:13px; color:#888; margin-top:8px; clear:both;">${npc.description || 'Sem descrição.'}</div>
       </div>`;
     });
+    sidebarContent.innerHTML = html;
   }
-  roomDetail.innerHTML = html;
+
+  // Abre a barra lateral adicionando a classe .active
+  sidebar.classList.add('active');
 }
 
 function renderAdminSelects() {
