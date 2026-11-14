@@ -135,7 +135,8 @@ function showRoomDetail(room) {
     return loc && loc.room_id === room.id;
   });
 
-  if (room.name === 'Porta/Entrada' && currentRole !== 'admin') {
+  // REGRA ESPECIAL: Filtrar NPCs na Porta/Entrada pelas noites corretas (Vale para todos)
+  if (room.name === 'Porta/Entrada') {
     npcsHere = npcsHere.filter(npc => {
       return npc.nights_active && npc.nights_active.includes(currentGameDay);
     });
@@ -156,7 +157,6 @@ function showRoomDetail(room) {
       const isDead = !npc.is_alive ? 'npc-dead' : '';
       const raceInfo = currentRole === 'admin' ? ` <span style="font-size:11px; background:#5c3a21; padding:2px 6px; border-radius:2px; float:right;">${npc.race}</span>` : ''; 
       
-      // Pega a localização atual do NPC para verificar se é exclusivo da porta
       const loc = allLocations.find(l => l.npc_id === npc.id);
       const isExclusiveDoor = loc ? loc.is_exclusive_door : false;
 
