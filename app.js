@@ -7,7 +7,7 @@ const SUPABASE_KEY = 'sb_publishable_MAYqX-_lOj-YS-xGH-Kf1w_ay0LrscN';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================================
-// ELEMENTOS DO DOM
+// ELEMENTOS DO DOM E ESTADO GLOBAL
 // ==========================================
 const authSection = document.getElementById('auth-section');
 const gameSection = document.getElementById('game-section');
@@ -22,6 +22,7 @@ let currentRole = 'player';
 let allRooms = [];
 let allNpcs = [];
 let allLocations = [];
+let currentGameDay = 1;
 
 // ==========================================
 // LOGIN E LOGOUT
@@ -34,7 +35,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
   errorDiv.textContent = 'Entrando...';
   errorDiv.style.color = '#4ecca3';
 
-  const { data, error } = await db.auth.signInWithPassword({ 
+  const { error } = await db.auth.signInWithPassword({ 
     email: emailInput, 
     password: passwordInput 
   });
@@ -83,7 +84,10 @@ db.auth.onAuthStateChange(async (event, session) => {
 // ==========================================
 async function loadGameData() {
   const { data: state } = await db.from('game_state').select('*').eq('id', 1).single();
-  if (state) gameStateDisplay.textContent = `Dia ${state.day_number} - Fase: ${state.phase.toUpperCase()}`;
+  if (state) {
+    currentGameDay = state.day_number;
+    gameStateDisplay.textContent = `Dia ${state.day_number} - Fase: ${state.phase.toUpperCase()}`;
+  }
 
   const { data: rooms } = await db.from('rooms').select('*').order('room_order');
   allRooms = rooms || [];
@@ -95,7 +99,6 @@ async function loadGameData() {
   allLocations = locations || [];
 
   renderMap();
-  renderAdminSelects();
 }
 
 // ==========================================
@@ -120,17 +123,25 @@ function renderMap() {
 }
 
 // ==========================================
-// BARRA LATERAL (SIDEBAR) E NPCs
+// BARRA LATERAL (SIDEBAR) E REGRAS DE NPC
 // ==========================================
 document.getElementById('btn-close-sidebar').addEventListener('click', () => {
   sidebar.classList.remove('active');
 });
 
 function showRoomDetail(room) {
-  const npcsHere = allNpcs.filter(npc => {
+  let npcsHere = allNpcs.filter(npc => {
     const loc = allLocations.find(l => l.npc_id === npc.id);
     return loc && loc.room_id === room.id;
   });
+
+  // REGRA ESPECIAL: Filtrar NPCs na Porta/Entrada pelas noites corretas
+  if (room.name === 'Porta/Entrada' && currentRole !== 'admin') {
+    npcsHere = npcsHere.filter(npc => {
+      // Se o array de noites existir e incluir o dia atual
+      return npc.nights_active && npc.nights_active.includes(currentGameDay);
+    });
+  }
 
   const sidebarTitle = document.getElementById('sidebar-title');
   const sidebarContent = document.getElementById('sidebar-content');
@@ -145,10 +156,20 @@ function showRoomDetail(room) {
       if (!npc.is_alive && currentRole !== 'admin') return;
 
       const isDead = !npc.is_alive ? 'npc-dead' : '';
-      const raceInfo = currentRole === 'admin' ? ` <span style="font-size:11px; background:#5c3a21; padding:2px 6px; border-radius:2px; margin-left:10px; float:right;">${npc.race}</span>` : ''; 
+      const raceInfo = currentRole === 'admin' ? ` <span style="font-size:11px; background:#5c3a21; padding:2px 6px; border-radius:2px; float:right;">${npc.race}</span>` : ''; 
       
+      // REGRA DO BOTÃO MOVER: Só aparece para admin, se não for NPC morto e se estiver na Porta
+      let moveBtnHtml = '';
+      if (currentRole === 'admin' && npc.is_alive && room.name === 'Porta/Entrada') {
+        moveBtnHtml = `<button class="btn-mover-npc" onclick="autoMoveNPC('${npc.id}')">Mover</button>`;
+      }
+
       html += `<div class="npc-card ${isDead}">
-        <div style="font-size:16px; font-weight:bold; color:#d4c5b0;">${npc.name}${raceInfo}</div>
+        <div style="font-size:16px; font-weight:bold; color:#d4c5b0;">
+          ${npc.name}
+          ${moveBtnHtml}
+          ${raceInfo}
+        </div>
         <div style="font-size:13px; color:#888; margin-top:8px; clear:both;">${npc.description || 'Sem descrição.'}</div>
       </div>`;
     });
@@ -159,38 +180,46 @@ function showRoomDetail(room) {
 }
 
 // ==========================================
-// FUNÇÕES DE ADMINISTRADOR
+// LÓGICA DE AUTO-MOVER NPC (Chamada pelo botão na sidebar)
 // ==========================================
-function renderAdminSelects() {
-  if (currentRole !== 'admin') return;
-  
-  const npcSelect = document.getElementById('npc-select');
-  npcSelect.innerHTML = allNpcs.map(n => `<option value="${n.id}">${n.name}</option>`).join('');
-  
-  const roomSelect = document.getElementById('room-select');
-  roomSelect.innerHTML = allRooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
-}
+window.autoMoveNPC = async function(npcId) {
+  // 1. Descobre o NPC e o que tem na descrição
+  const npc = allNpcs.find(n => n.id === npcId);
+  if (!npc || !npc.description) return;
 
-document.getElementById('btn-move-npc').addEventListener('click', async () => {
-  const npcId = document.getElementById('npc-select').value;
-  const roomId = document.getElementById('room-select').value;
+  // 2. Tenta achar o nome do quarto favorito na descrição ("Favorito: NOME.")
+  let targetRoom = null;
+  const match = npc.description.match(/Favorito:\s*(.*?)\./i);
   
-  adminFeedback.textContent = 'Movendo...';
+  if (match && match[1]) {
+    const roomName = match[1].trim(); // Pega o texto depois de "Favorito: " e antes do "."
+    targetRoom = allRooms.find(r => r.name.toLowerCase() === roomName.toLowerCase());
+  }
+
+  // Se não achar na descrição ou o quarto não existir, manda para a Cozinha como fallback
+  if (!targetRoom) {
+    targetRoom = allRooms.find(r => r.name === 'Cozinha'); 
+  }
+
+  // 3. Faz a mágica acontecer no banco
+  adminFeedback.textContent = `Movendo...`;
   adminFeedback.style.color = '#d4c5b0';
-  
-  const { error } = await db.rpc('move_npc', { p_npc_id: npcId, p_room_id: roomId });
+
+  const { error } = await db.rpc('move_npc', { p_npc_id: npcId, p_room_id: targetRoom.id });
   
   if (error) {
-    adminFeedback.textContent = 'Erro: ' + error.message;
-    adminFeedback.style.color = '#8b2d2d';
+    alert('Erro ao mover: ' + error.message);
   } else {
-    adminFeedback.textContent = 'NPC movido com sucesso!';
+    adminFeedback.textContent = `NPC movido para ${targetRoom.name}!`;
     adminFeedback.style.color = '#4ecca3';
-    await loadGameData();
-    document.getElementById('sidebar').classList.remove('active');
+    await loadGameData(); 
+    document.getElementById('sidebar').classList.remove('active'); // Fecha a sidebar
   }
-});
+};
 
+// ==========================================
+// FUNÇÕES DE ADMINISTRADOR (Avançar dia e Add NPC)
+// ==========================================
 document.getElementById('btn-advance-day').addEventListener('click', async () => {
   const { data, error } = await db.rpc('advance_day');
   
@@ -201,6 +230,7 @@ document.getElementById('btn-advance-day').addEventListener('click', async () =>
     adminFeedback.textContent = `Avançou para Dia ${data.day} (${data.phase}). Mortes: ${data.killed}`;
     adminFeedback.style.color = '#4ecca3';
     await loadGameData();
+    document.getElementById('sidebar').classList.remove('active');
   }
 });
 
