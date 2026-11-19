@@ -69,6 +69,7 @@ db.auth.onAuthStateChange(async (event, session) => {
     
     if (currentRole === 'admin') {
       document.getElementById('btn-advance-day').style.display = 'block';
+      document.getElementById('btn-reset-game').style.display = 'block';
     }
 
     await loadGameData();
@@ -133,11 +134,9 @@ document.getElementById('btn-close-sidebar').addEventListener('click', () => {
 function showRoomDetail(room) {
   let npcsHere = allNpcs.filter(npc => {
     const loc = allLocations.find(l => l.npc_id === npc.id);
-    // Se for Porta/Entrada, só mostra quem ainda NÃO entrou na casa (is_inside = false)
     if (room.name === 'Porta/Entrada') {
       return loc && loc.room_id === room.id && loc.is_inside === false;
     }
-    // Nos outros cômodos, só mostra quem JÁ ENTROU na casa (is_inside = true)
     return loc && loc.room_id === room.id && loc.is_inside === true;
   });
 
@@ -157,7 +156,6 @@ function showRoomDetail(room) {
       const raceInfo = currentRole === 'admin' ? ` <span style="font-size:11px; background:#5c3a21; padding:2px 6px; border-radius:2px; float:right;">${npc.race}</span>` : ''; 
       
       let moveBtnHtml = '';
-      // Botão mover só aparece na Porta para admin
       if (currentRole === 'admin' && npc.is_alive && room.name === 'Porta/Entrada') {
         moveBtnHtml = `<button class="btn-mover-npc" onclick="autoMoveNPC('${npc.id}')">Mover</button>`;
       }
@@ -184,15 +182,12 @@ window.autoMoveNPC = async function(npcId) {
   adminFeedback.textContent = `Movendo...`;
   adminFeedback.style.color = '#d4c5b0';
 
-  // Ao mover manualmente, ele entra na casa (is_inside = true)
   const { data, error } = await db.rpc('move_npc_to_favorite', { p_npc_id: npcId });
   
   if (error) {
     alert('Erro ao mover: ' + error.message);
   } else {
-    // Precisamos forçar o is_inside = true no banco
     await db.from('npc_locations').update({ is_inside: true }).eq('npc_id', npcId);
-    
     adminFeedback.textContent = `NPC movido para ${data}!`;
     adminFeedback.style.color = '#4ecca3';
     await loadGameData(); 
@@ -212,7 +207,6 @@ document.getElementById('btn-advance-day').addEventListener('click', async () =>
   if (error) {
     alert('Erro: ' + error.message);
   } else {
-    // Monta o pop-up de mortes
     if (data.deaths && data.deaths.length > 0) {
       let msg = "💀 A noite chegou...\n\nMorreram nesta noite:\n";
       data.deaths.forEach(d => {
@@ -229,6 +223,29 @@ document.getElementById('btn-advance-day').addEventListener('click', async () =>
   
   document.getElementById('btn-advance-day').disabled = false;
   document.getElementById('btn-advance-day').textContent = '🌙 Avançar Dia/Noite';
+});
+
+// ==========================================
+// FUNÇÃO RESETAR JOGO
+// ==========================================
+document.getElementById('btn-reset-game').addEventListener('click', async () => {
+  if (!confirm('Tem certeza que deseja resetar o jogo? Todos os NPCs voltarão à vida e o dia voltará para 1.')) return;
+
+  document.getElementById('btn-reset-game').disabled = true;
+  document.getElementById('btn-reset-game').textContent = 'Resetando...';
+
+  const { data, error } = await db.rpc('reset_game');
+  
+  if (error) {
+    alert('Erro ao resetar: ' + error.message);
+  } else {
+    alert(`🔄 Jogo resetado com sucesso!\n\nO Dia 1 começou com ${data.inside} NPCs na casa (sendo ${data.visitors} visitante).`);
+    await loadGameData();
+    document.getElementById('sidebar').classList.remove('active');
+  }
+
+  document.getElementById('btn-reset-game').disabled = false;
+  document.getElementById('btn-reset-game').textContent = '🔄 Resetar Jogo';
 });
 
 // ==========================================
@@ -257,7 +274,7 @@ document.getElementById('btn-add-npc').addEventListener('click', async () => {
       npc_id: newNpc.id, 
       room_id: doorRoom.id, 
       is_exclusive_door: false,
-      is_inside: false // Começa fora da casa (na porta)
+      is_inside: false
     });
     
     adminFeedback.textContent = `NPC ${name} criado na Porta/Entrada.`;
