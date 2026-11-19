@@ -108,10 +108,10 @@ function renderMap() {
   mapContainer.querySelectorAll('.room-hit').forEach(el => el.remove());
 
   allRooms.forEach(room => {
-    // REGRA NOVA: Ignora totalmente o Porão Secreto (não cria botão nem área clicável)
-    if (room.name === 'Porão secreto') return;
+    // Ignora o porão de forma segura
+    if (room.name.toLowerCase().includes('porão')) return;
 
-    // Oculta outros cômodos que sejam secretos, se houver
+    // Esconde outros cômodos secretos de jogadores comuns
     if (currentRole !== 'admin' && room.is_hidden) return;
 
     const div = document.createElement('div');
