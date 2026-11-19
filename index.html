@@ -19,11 +19,14 @@
   <section id="game-section">
     <div style="display:flex; justify-content:space-between; align-items:center; width:100%; max-width:1200px; margin: 0 auto;">
       
-      <!-- Área do topo: Título + Botão Avançar -->
-      <div style="display:flex; align-items:center; gap: 20px;">
-        <h2 id="game-state-display" style="color:#8b2d2d; font-variant:small-caps;">Dia 1 - Fase: DAY</h2>
-        <!-- Botão de Avançar agora fica aqui (escondido para jogadores) -->
+      <div style="display:flex; align-items:center; gap: 10px;">
+        <h2 id="game-state-display" style="color:#8b2d2d; font-variant:small-caps; margin-right:10px;">Dia 1 - Fase: DAY</h2>
+        
+        <!-- Botão de Avançar -->
         <button id="btn-advance-day" style="display:none; width:auto; padding: 8px 15px; background:#5c3a21; font-size:14px;">🌙 Avançar Dia/Noite</button>
+        
+        <!-- Botão de Resetar -->
+        <button id="btn-reset-game" style="display:none; width:auto; padding: 8px 15px; background:#8b2d2d; font-size:14px;">🔄 Resetar Jogo</button>
       </div>
 
       <div>
@@ -47,7 +50,6 @@
     </div>
   </section>
 
-  <!-- Painel Admin (Agora só tem a parte de Adicionar NPC) -->
   <section id="admin-section">
     <h3 style="color:#8b2d2d; margin-bottom:15px; border-bottom: 1px solid #333; padding-bottom:10px;">⚙️ Painel do Administrador</h3>
     
