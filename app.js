@@ -68,7 +68,7 @@ db.auth.onAuthStateChange(async (event, session) => {
     gameSection.style.alignItems = 'center';
     
     if (currentRole === 'admin') {
-      adminSection.style.display = 'block';
+      document.getElementById('btn-advance-day').style.display = 'block';
     }
 
     await loadGameData();
@@ -108,10 +108,7 @@ function renderMap() {
   mapContainer.querySelectorAll('.room-hit').forEach(el => el.remove());
 
   allRooms.forEach(room => {
-    // Ignora o porão de forma segura
     if (room.name.toLowerCase().includes('porão')) return;
-
-    // Esconde outros cômodos secretos de jogadores comuns
     if (currentRole !== 'admin' && room.is_hidden) return;
 
     const div = document.createElement('div');
@@ -127,7 +124,7 @@ function renderMap() {
 }
 
 // ==========================================
-// BARRA LATERAL (SIDEBAR) E REGRAS DE NPC
+// BARRA LATERAL (SIDEBAR)
 // ==========================================
 document.getElementById('btn-close-sidebar').addEventListener('click', () => {
   sidebar.classList.remove('active');
@@ -136,15 +133,13 @@ document.getElementById('btn-close-sidebar').addEventListener('click', () => {
 function showRoomDetail(room) {
   let npcsHere = allNpcs.filter(npc => {
     const loc = allLocations.find(l => l.npc_id === npc.id);
-    return loc && loc.room_id === room.id;
+    // Se for Porta/Entrada, só mostra quem ainda NÃO entrou na casa (is_inside = false)
+    if (room.name === 'Porta/Entrada') {
+      return loc && loc.room_id === room.id && loc.is_inside === false;
+    }
+    // Nos outros cômodos, só mostra quem JÁ ENTROU na casa (is_inside = true)
+    return loc && loc.room_id === room.id && loc.is_inside === true;
   });
-
-  // Filtro de NPCs na Porta/Entrada pelas noites corretas
-  if (room.name === 'Porta/Entrada') {
-    npcsHere = npcsHere.filter(npc => {
-      return npc.nights_active && npc.nights_active.includes(currentGameDay);
-    });
-  }
 
   const sidebarTitle = document.getElementById('sidebar-title');
   const sidebarContent = document.getElementById('sidebar-content');
@@ -161,11 +156,9 @@ function showRoomDetail(room) {
       const isDead = !npc.is_alive ? 'npc-dead' : '';
       const raceInfo = currentRole === 'admin' ? ` <span style="font-size:11px; background:#5c3a21; padding:2px 6px; border-radius:2px; float:right;">${npc.race}</span>` : ''; 
       
-      const loc = allLocations.find(l => l.npc_id === npc.id);
-      const isExclusiveDoor = loc ? loc.is_exclusive_door : false;
-
       let moveBtnHtml = '';
-      if (currentRole === 'admin' && npc.is_alive && room.name === 'Porta/Entrada' && !isExclusiveDoor) {
+      // Botão mover só aparece na Porta para admin
+      if (currentRole === 'admin' && npc.is_alive && room.name === 'Porta/Entrada') {
         moveBtnHtml = `<button class="btn-mover-npc" onclick="autoMoveNPC('${npc.id}')">Mover</button>`;
       }
 
@@ -185,17 +178,21 @@ function showRoomDetail(room) {
 }
 
 // ==========================================
-// LÓGICA DE AUTO-MOVER NPC
+// LÓGICA DE AUTO-MOVER NPC (Para Admin testar)
 // ==========================================
 window.autoMoveNPC = async function(npcId) {
   adminFeedback.textContent = `Movendo...`;
   adminFeedback.style.color = '#d4c5b0';
 
+  // Ao mover manualmente, ele entra na casa (is_inside = true)
   const { data, error } = await db.rpc('move_npc_to_favorite', { p_npc_id: npcId });
   
   if (error) {
     alert('Erro ao mover: ' + error.message);
   } else {
+    // Precisamos forçar o is_inside = true no banco
+    await db.from('npc_locations').update({ is_inside: true }).eq('npc_id', npcId);
+    
     adminFeedback.textContent = `NPC movido para ${data}!`;
     adminFeedback.style.color = '#4ecca3';
     await loadGameData(); 
@@ -204,22 +201,39 @@ window.autoMoveNPC = async function(npcId) {
 };
 
 // ==========================================
-// FUNÇÕES DE ADMINISTRADOR (Avançar dia e Add NPC)
+// FUNÇÃO AVANÇAR DIA (Com Pop-up)
 // ==========================================
 document.getElementById('btn-advance-day').addEventListener('click', async () => {
+  document.getElementById('btn-advance-day').disabled = true;
+  document.getElementById('btn-advance-day').textContent = 'Avançando...';
+
   const { data, error } = await db.rpc('advance_day');
   
   if (error) {
-    adminFeedback.textContent = 'Erro: ' + error.message;
-    adminFeedback.style.color = '#8b2d2d';
+    alert('Erro: ' + error.message);
   } else {
-    adminFeedback.textContent = `Avançou para Dia ${data.day} (${data.phase}). Mortes: ${data.killed}`;
-    adminFeedback.style.color = '#4ecca3';
+    // Monta o pop-up de mortes
+    if (data.deaths && data.deaths.length > 0) {
+      let msg = "💀 A noite chegou...\n\nMorreram nesta noite:\n";
+      data.deaths.forEach(d => {
+        msg += `- ${d.name} (${d.race})\n`;
+      });
+      alert(msg);
+    } else {
+      alert(`🌙 Transição para Dia ${data.day} - Fase: ${data.phase}.\nNinguém morreu nesta noite.`);
+    }
+
     await loadGameData();
     document.getElementById('sidebar').classList.remove('active');
   }
+  
+  document.getElementById('btn-advance-day').disabled = false;
+  document.getElementById('btn-advance-day').textContent = '🌙 Avançar Dia/Noite';
 });
 
+// ==========================================
+// ADICIONAR NPC (Admin)
+// ==========================================
 document.getElementById('btn-add-npc').addEventListener('click', async () => {
   const name = document.getElementById('new-npc-name').value;
   const desc = document.getElementById('new-npc-desc').value;
@@ -240,7 +254,10 @@ document.getElementById('btn-add-npc').addEventListener('click', async () => {
     adminFeedback.style.color = '#8b2d2d';
   } else {
     await db.from('npc_locations').insert({
-      npc_id: newNpc.id, room_id: doorRoom.id, is_exclusive_door: false
+      npc_id: newNpc.id, 
+      room_id: doorRoom.id, 
+      is_exclusive_door: false,
+      is_inside: false // Começa fora da casa (na porta)
     });
     
     adminFeedback.textContent = `NPC ${name} criado na Porta/Entrada.`;
