@@ -108,6 +108,10 @@ function renderMap() {
   mapContainer.querySelectorAll('.room-hit').forEach(el => el.remove());
 
   allRooms.forEach(room => {
+    // REGRA NOVA: Ignora totalmente o Porão Secreto (não cria botão nem área clicável)
+    if (room.name === 'Porão secreto') return;
+
+    // Oculta outros cômodos que sejam secretos, se houver
     if (currentRole !== 'admin' && room.is_hidden) return;
 
     const div = document.createElement('div');
@@ -135,7 +139,7 @@ function showRoomDetail(room) {
     return loc && loc.room_id === room.id;
   });
 
-  // REGRA ESPECIAL: Filtrar NPCs na Porta/Entrada pelas noites corretas (Vale para todos)
+  // Filtro de NPCs na Porta/Entrada pelas noites corretas
   if (room.name === 'Porta/Entrada') {
     npcsHere = npcsHere.filter(npc => {
       return npc.nights_active && npc.nights_active.includes(currentGameDay);
@@ -160,7 +164,6 @@ function showRoomDetail(room) {
       const loc = allLocations.find(l => l.npc_id === npc.id);
       const isExclusiveDoor = loc ? loc.is_exclusive_door : false;
 
-      // Botão Mover - Só aparece se for admin, na porta, vivo E NÃO FOR EXCLUSIVO DA PORTA
       let moveBtnHtml = '';
       if (currentRole === 'admin' && npc.is_alive && room.name === 'Porta/Entrada' && !isExclusiveDoor) {
         moveBtnHtml = `<button class="btn-mover-npc" onclick="autoMoveNPC('${npc.id}')">Mover</button>`;
