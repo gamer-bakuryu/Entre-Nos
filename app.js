@@ -176,7 +176,7 @@ function showRoomDetail(room) {
 }
 
 // ==========================================
-// LÓGICA DE AUTO-MOVER NPC (Para Admin testar)
+// LÓGICA DE AUTO-MOVER NPC
 // ==========================================
 window.autoMoveNPC = async function(npcId) {
   adminFeedback.textContent = `Movendo...`;
@@ -187,7 +187,9 @@ window.autoMoveNPC = async function(npcId) {
   if (error) {
     alert('Erro ao mover: ' + error.message);
   } else {
+    // Força o is_inside = true
     await db.from('npc_locations').update({ is_inside: true }).eq('npc_id', npcId);
+    
     adminFeedback.textContent = `NPC movido para ${data}!`;
     adminFeedback.style.color = '#4ecca3';
     await loadGameData(); 
@@ -207,14 +209,15 @@ document.getElementById('btn-advance-day').addEventListener('click', async () =>
   if (error) {
     alert('Erro: ' + error.message);
   } else {
+    // Pop-up detalhado
     if (data.deaths && data.deaths.length > 0) {
-      let msg = "💀 A noite chegou...\n\nMorreram nesta noite:\n";
+      let msg = `🌙 Transição para Dia ${data.day} - Fase: ${data.phase.toUpperCase()}\n\n💀 MORTES DA NOITE:\n`;
       data.deaths.forEach(d => {
         msg += `- ${d.name} (${d.race})\n`;
       });
       alert(msg);
     } else {
-      alert(`🌙 Transição para Dia ${data.day} - Fase: ${data.phase}.\nNinguém morreu nesta noite.`);
+      alert(`🌙 Transição para Dia ${data.day} - Fase: ${data.phase.toUpperCase()}\n\nNinguém morreu nesta noite.`);
     }
 
     await loadGameData();
