@@ -23,6 +23,7 @@ let allRooms = [];
 let allNpcs = [];
 let allLocations = [];
 let currentGameDay = 1;
+let currentPhase = 'day'; // Novo estado para guardar a fase
 
 // ==========================================
 // LOGIN E LOGOUT
@@ -87,6 +88,7 @@ async function loadGameData() {
   const { data: state } = await db.from('game_state').select('*').eq('id', 1).single();
   if (state) {
     currentGameDay = state.day_number;
+    currentPhase = state.phase; // Salva a fase atual
     gameStateDisplay.textContent = `Dia ${state.day_number} - Fase: ${state.phase.toUpperCase()}`;
   }
 
@@ -134,9 +136,21 @@ document.getElementById('btn-close-sidebar').addEventListener('click', () => {
 function showRoomDetail(room) {
   let npcsHere = allNpcs.filter(npc => {
     const loc = allLocations.find(l => l.npc_id === npc.id);
+    
     if (room.name === 'Porta/Entrada') {
-      return loc && loc.room_id === room.id && loc.is_inside === false;
+      // Se estamos na Porta, pegamos quem está fora (is_inside = false)
+      if (!loc || loc.room_id !== room.id || loc.is_inside === true) return false;
+      
+      // REGRA DE OURO: Se for NOITE, mostra apenas quem tem o dia atual na ficha
+      if (currentPhase === 'night') {
+        return npc.nights_active && npc.nights_active.includes(currentGameDay);
+      }
+      
+      // Se for DIA, mostra quem sobrou na porta (que são os que chegaram na noite anterior)
+      return true; 
     }
+    
+    // Nos outros cômodos, pega quem já entrou na casa (is_inside = true)
     return loc && loc.room_id === room.id && loc.is_inside === true;
   });
 
@@ -187,7 +201,6 @@ window.autoMoveNPC = async function(npcId) {
   if (error) {
     alert('Erro ao mover: ' + error.message);
   } else {
-    // Força o is_inside = true
     await db.from('npc_locations').update({ is_inside: true }).eq('npc_id', npcId);
     
     adminFeedback.textContent = `NPC movido para ${data}!`;
@@ -209,7 +222,6 @@ document.getElementById('btn-advance-day').addEventListener('click', async () =>
   if (error) {
     alert('Erro: ' + error.message);
   } else {
-    // Pop-up detalhado
     if (data.deaths && data.deaths.length > 0) {
       let msg = `🌙 Transição para Dia ${data.day} - Fase: ${data.phase.toUpperCase()}\n\n💀 MORTES DA NOITE:\n`;
       data.deaths.forEach(d => {
