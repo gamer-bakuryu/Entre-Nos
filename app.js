@@ -23,7 +23,6 @@ let allRooms = [];
 let allNpcs = [];
 let allLocations = [];
 let currentGameDay = 1;
-let currentPhase = 'day'; // Novo estado para guardar a fase
 
 // ==========================================
 // LOGIN E LOGOUT
@@ -88,7 +87,6 @@ async function loadGameData() {
   const { data: state } = await db.from('game_state').select('*').eq('id', 1).single();
   if (state) {
     currentGameDay = state.day_number;
-    currentPhase = state.phase; // Salva a fase atual
     gameStateDisplay.textContent = `Dia ${state.day_number} - Fase: ${state.phase.toUpperCase()}`;
   }
 
@@ -138,19 +136,12 @@ function showRoomDetail(room) {
     const loc = allLocations.find(l => l.npc_id === npc.id);
     
     if (room.name === 'Porta/Entrada') {
-      // Se estamos na Porta, pegamos quem está fora (is_inside = false)
-      if (!loc || loc.room_id !== room.id || loc.is_inside === true) return false;
-      
-      // REGRA DE OURO: Se for NOITE, mostra apenas quem tem o dia atual na ficha
-      if (currentPhase === 'night') {
-        return npc.nights_active && npc.nights_active.includes(currentGameDay);
-      }
-      
-      // Se for DIA, mostra quem sobrou na porta (que são os que chegaram na noite anterior)
-      return true; 
+      // Na Porta, mostra quem ainda não entrou na casa (is_inside = false)
+      // O banco só coloca NPCs na porta na virada do dia para a noite.
+      return loc && loc.room_id === room.id && loc.is_inside === false;
     }
     
-    // Nos outros cômodos, pega quem já entrou na casa (is_inside = true)
+    // Nos outros cômodos, mostra quem já entrou (is_inside = true)
     return loc && loc.room_id === room.id && loc.is_inside === true;
   });
 
