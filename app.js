@@ -136,8 +136,7 @@ function showRoomDetail(room) {
     const loc = allLocations.find(l => l.npc_id === npc.id);
     
     if (room.name === 'Porta/Entrada') {
-      // Na Porta, mostra quem ainda não entrou na casa (is_inside = false)
-      // O banco só coloca NPCs na porta na virada do dia para a noite.
+      // Na Porta, mostra APENAS quem está explicitamente com o ID da Porta e is_inside = false
       return loc && loc.room_id === room.id && loc.is_inside === false;
     }
     
